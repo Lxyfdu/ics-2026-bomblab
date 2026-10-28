@@ -176,7 +176,17 @@ int solve_secret(uint64_t challenge, uint64_t context, char *out, size_t cap) {
     (void)context;
     (void)out;
     (void)cap;
-    // TODO（选做）: 根据 secret_gate、secret_copy 和 secret_phase 的汇编构造完整的第七行，写入 out 后返回 0。
-    // 第七行不一定只有整数，可以直接用 snprintf 写入；还没完成时保持返回 1，测试会显示 not attempted。
+
+    uint32_t a = (uint32_t)challenge ^ (uint32_t)(challenge >> 32);
+    uint32_t b = (uint32_t)context ^ (uint32_t)(context >> 32);
+    uint32_t first = (uint32_t)context & 3u;
+    uint32_t mask = (first * 0x8e42u) ^ (uint32_t)(context >> 16);
+    uint32_t v = a ^ b;
+    uint32_t second = ((v >> 7) | (v << 25)) ^ 0x364au ^ mask;
+    uint32_t third = second ^ (b + first + 0xb808u + (a >> 7));
+
+    int size = snprintf(out, cap, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOPEN %" PRIu32 " %" PRIu32 " %" PRIu32, first, second, third);
+    return size < 0 || (size_t)size >= cap;
+
     return 1;
 }
